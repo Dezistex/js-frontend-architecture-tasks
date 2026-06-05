@@ -21,16 +21,12 @@ const schema = yup.object().shape({
     ),
 });
 
-// Этот объект можно использовать для того, чтобы обрабатывать ошибки сети.
-// Это необязательное задание, но крайне рекомендуем попрактиковаться.
 const errorMessages = {
   network: {
     error: 'Network Problems. Try again.',
   },
 };
 
-// Используйте эту функцию для выполнения валидации.
-// Выведите в консоль её результат, чтобы увидеть, как получить сообщения об ошибках.
 const validate = (fields) => {
   try {
     schema.validateSync(fields, { abortEarly: false });
@@ -41,5 +37,62 @@ const validate = (fields) => {
 };
 
 // BEGIN
+export default () => {
+  const container = document.querySelector('[data-container="sign-up"]');
+  const form = document.querySelector('[data-form="sign-up"]');
+  const submitBtn = form.querySelector('[type="submit"]');
+  const fieldNames = ['name', 'email', 'password', 'passwordConfirmation'];
 
+  const touched = {};
+  let errors = validate({ name: '', email: '', password: '', passwordConfirmation: '' });
+  const fields = { name: '', email: '', password: '', passwordConfirmation: '' };
+
+  const renderField = (fieldName) => {
+    const input = form.querySelector(`[name="${fieldName}"]`);
+    const error = errors[fieldName];
+
+    if (touched[fieldName] && error) {
+      input.classList.add('is-invalid');
+      let feedback = input.nextElementSibling;
+      if (!feedback || !feedback.classList.contains('invalid-feedback')) {
+        feedback = document.createElement('div');
+        feedback.className = 'invalid-feedback';
+        input.after(feedback);
+      }
+      feedback.textContent = error.message;
+    } else {
+      input.classList.remove('is-invalid');
+      const feedback = input.nextElementSibling;
+      if (feedback && feedback.classList.contains('invalid-feedback')) {
+        feedback.remove();
+      }
+    }
+  };
+
+  const render = () => {
+    fieldNames.forEach(renderField);
+    submitBtn.disabled = !isEmpty(errors);
+  };
+
+  render();
+
+  form.addEventListener('input', (e) => {
+    const { name, value } = e.target;
+    touched[name] = true;
+    fields[name] = value;
+    errors = validate(fields);
+    render();
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    try {
+      await axios.post(routes.usersPath(), fields);
+      container.innerHTML = 'User Created!';
+    } catch (err) {
+      submitBtn.disabled = !isEmpty(errors);
+    }
+  });
+};
 // END
